@@ -361,6 +361,23 @@ fn csgo_install_dir() -> Option<PathBuf> {
     None
 }
 
+#[cfg(windows)]
+fn steam_install_dir() -> Option<PathBuf> {
+    let local_machine = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let key = local_machine
+        .open_subkey("SOFTWARE\\WOW6432Node\\Valve\\Steam")
+        .ok()?;
+    let install_path: String = key.get_value("InstallPath").ok()?;
+    let path = PathBuf::from(install_path);
+
+    path.join("steam.exe").exists().then_some(path)
+}
+
+#[cfg(not(windows))]
+fn steam_install_dir() -> Option<PathBuf> {
+    None
+}
+
 fn download_asset(
     client: &reqwest::blocking::Client,
     release: &GithubRelease,
@@ -433,16 +450,18 @@ fn spawn_server_hidden(
 #[cfg(windows)]
 fn restart_csgo() -> Result<(), String> {
     close_csgo_if_running()?;
-    let game_dir =
-        csgo_install_dir().ok_or_else(|| "failed to find CS:GO install path".to_string())?;
-    let exe = game_dir.join("csgo.exe");
 
-    Command::new(&exe)
-        .args(["-steam", "-insecure", "-novid"])
-        .current_dir(&game_dir)
+    let steam_dir = steam_install_dir().ok_or_else(|| "failed to find Steam install path".to_string())?;
+    let steam = steam_dir.join("steam.exe");
+
+    Command::new(&steam)
+        .args(["-applaunch", "730", "-steam", "-insecure", "-novid"])
+        .current_dir(&steam_dir)
         .spawn()
         .map(|_| ())
-        .map_err(|error| format!("failed to launch {}: {error}", exe.display()))
+        .map_err(|error| format!("failed to launch {}: {error}", steam.display()))
+
+    // todo: support for standalone csgo (4465480)
 }
 
 #[cfg(not(windows))]
