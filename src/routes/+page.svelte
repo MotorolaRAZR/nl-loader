@@ -4,6 +4,7 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
 
   type Branch = 'Release' | 'Nightly';
+  type Game = 'csgo_legacy' | 'csgo';
   type View = 'boot' | 'launcher' | 'details' | 'closingDetails' | 'launching';
   type ConfigEntry = {
     entry_id: number;
@@ -24,6 +25,7 @@
   };
 
   let view = $state<View>('boot');
+  let game = $state<Game>('csgo');
   let branch = $state<Branch>('Release');
   let branchOpen = $state(false);
   let versionOpen = $state(false);
@@ -128,6 +130,11 @@
       window.removeEventListener('mousedown', dragWindow, true);
     };
   });
+
+  const appids: Record<Game, number> = {
+      csgo: 4465480,
+      csgo_legacy: 730,
+  };
 
   function showLauncher() {
     view = 'launcher';
@@ -258,7 +265,7 @@
     configOpen = false;
   }
 
-  function launch() {
+  function launch(appid: number) {
     branchOpen = false;
     launchPending = true;
     progress = 0;
@@ -277,11 +284,11 @@
 
       view = 'launching';
       launchTimer = undefined;
-      void startLaunchProgress(versionToLaunch, configIdToLaunch);
+      void startLaunchProgress(versionToLaunch, configIdToLaunch, appid);
     }, 230);
   }
 
-  async function startLaunchProgress(versionToLaunch: string, configIdToLaunch: number | null) {
+  async function startLaunchProgress(versionToLaunch: string, configIdToLaunch: number | null, appid: number | null) {
     const startedAt = performance.now();
     let finished = false;
     const tick = () => {
@@ -296,7 +303,7 @@
     requestAnimationFrame(tick);
 
     try {
-      await invoke('download_and_launch_version', { tag: versionToLaunch, configId: configIdToLaunch });
+      await invoke('download_and_launch_version', { tag: versionToLaunch, configId: configIdToLaunch, appid });
       finished = true;
       progress = 100;
       window.setTimeout(() => {
@@ -492,12 +499,20 @@
         <h1 data-tauri-drag-region>Subscription</h1>
         <p data-tauri-drag-region>Available subscriptions</p>
 
-        <button class="subscription-card active" onclick={openDetails}>
+        <button class="subscription-card active" onclick={() => (game = 'csgo_legacy') && openDetails()}>
           <span>
-            <strong>Counter-Strike: Global Offensive</strong>
+            <strong>CS:GO (csgo_legacy)</strong>
             <em>Expires Never</em>
           </span>
           <img class="game-icon" src="/csgo.png" alt="" draggable="false" />
+        </button>
+
+        <button class="subscription-card active" onclick={() => (game = 'csgo') && openDetails()}>
+            <span>
+            <strong>Counter-Strike: Global Offensive</strong>
+            <em>Expires Never</em>
+            </span>
+            <img class="game-icon" src="/csgo.png" alt="" draggable="false" />
         </button>
 
       </section>
@@ -516,7 +531,11 @@
           <div class="detail-content">
             <header>
               <img class="game-icon large" src="/csgo.png" alt="" draggable="false" />
-              <h2>Counter-Strike: Global Offensive</h2>
+              {#if game === 'csgo_legacy'}
+                <h2>CS:GO (csgo_legacy)</h2>
+              {:else}
+                <h2>Counter-Strike: Global Offensive</h2>
+              {/if}
               <button aria-label="Close details" class="detail-close" onclick={closeDetails}>{@render IconClose()}</button>
             </header>
 
@@ -601,7 +620,7 @@
                 >
                   {@render IconChevron()}
                 </button>
-                <button disabled={branchOpen || launchPending} class="load" onclick={launch}>
+                <button disabled={branchOpen || launchPending} class="load" onclick={() => launch(appids[game])}>
                   <span class="play-icon">{@render IconPlay()}</span>
                   Load
                 </button>

@@ -279,7 +279,7 @@ fn load_git_metadata() -> Result<LauncherGitMetadata, String> {
 }
 
 #[tauri::command]
-fn download_and_launch_version(tag: String, config_id: Option<i32>) -> Result<(), String> {
+fn download_and_launch_version(tag: String, config_id: Option<i32>, appid: i32) -> Result<(), String> {
     if tag.trim().is_empty() || tag == "Unavailable" {
         return Err("no release version is selected".to_string());
     }
@@ -312,7 +312,7 @@ fn download_and_launch_version(tag: String, config_id: Option<i32>) -> Result<()
         &cloud_dir,
         config_id,
     )?;
-    restart_csgo()?;
+    restart_csgo(appid)?;
     spawn_hidden(&install_dir.join("injector.exe"), &install_dir)?;
 
     Ok(())
@@ -448,20 +448,23 @@ fn spawn_server_hidden(
 }
 
 #[cfg(windows)]
-fn restart_csgo() -> Result<(), String> {
+fn restart_csgo(appid: i32) -> Result<(), String> {
     close_csgo_if_running()?;
 
     let steam_dir = steam_install_dir().ok_or_else(|| "failed to find Steam install path".to_string())?;
     let steam = steam_dir.join("steam.exe");
 
+    let protocol_string = format!("steam://launch/{}/dialog", appid);
+
     Command::new(&steam)
-        .args(["-applaunch", "730", "-steam", "-insecure", "-novid"])
+        // fix: steam ignores extra arguments when using steam://launch/id.
+        //      using steam://run or -applaunch accepts arguments but won't let you select betas,
+        //      so cs2 will run for appid 730. volvo pls fix
+        .args([&protocol_string, "-steam", "-insecure", "-novid"])
         .current_dir(&steam_dir)
         .spawn()
         .map(|_| ())
         .map_err(|error| format!("failed to launch {}: {error}", steam.display()))
-
-    // todo: support for standalone csgo (4465480)
 }
 
 #[cfg(not(windows))]
