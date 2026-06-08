@@ -548,13 +548,14 @@ fn restart_csgo(appid: i32) -> Result<(), String> {
     let steam_dir =
         steam_install_dir().ok_or_else(|| "failed to find Steam install path".to_string())?;
     let steam = steam_dir.join("steam.exe");
-
-    let protocol_string = format!("steam://launch/{}/dialog", appid);
+    
+    let protocol_string = match appid {
+        730 => "steam://launch/730/option1".to_string(),
+        _ => format!("steam://launch/{}/dialog", appid),
+    };
+    //fix: now doesnt need the pop up
 
     Command::new(&steam)
-        // fix: steam ignores extra arguments when using steam://launch/id.
-        //      using steam://run or -applaunch accepts arguments but won't let you select betas,
-        //      so cs2 will run for appid 730. volvo pls fix
         .args([&protocol_string, "-steam", "-insecure", "-novid"])
         .current_dir(&steam_dir)
         .spawn()
