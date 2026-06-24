@@ -161,7 +161,7 @@
 
     const bootTimer = window.setTimeout(() => {
       showLauncher();
-    }, 3000);
+    }, 1000);
 
     return () => {
       window.clearTimeout(bootTimer);
@@ -572,7 +572,7 @@
       progress = 100;
       window.setTimeout(() => {
         void appWindow?.close().catch(() => undefined);
-      }, 1800);
+      }, 1000);
     } catch (error) {
       console.warn('Failed to launch selected version', error);
       launchError = String(error);
