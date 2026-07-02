@@ -201,13 +201,9 @@ pub async fn download_and_launch_version(
         &cloud_dir,
         config_id,
     )?;
-    if is_legacy_version(&tag) {
-        steam::restart_csgo(appid)?;
-        spawn_hidden(&install_dir.join("injector.exe"), &install_dir)?;
-    } else {
-        let headless_choice = if appid == 730 { 2 } else { 1 };
-        spawn_injector_headless(&install_dir.join("injector.exe"), &install_dir, headless_choice, game_dir)?;
-    }
+    // Spawn the injector directly in headless mode (it will launch csgo.exe and handle steam_appid.txt)
+    let headless_choice = if appid == 730 { 2 } else { 1 };
+    spawn_injector_headless(&install_dir.join("injector.exe"), &install_dir, headless_choice, game_dir)?;
 
     Ok(())
 }
