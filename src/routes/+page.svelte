@@ -62,6 +62,7 @@
     nightlies: []
   });
   let selectedVersion = $state('');
+  let legacyVersion = $state(false);
   let launchPending = $state(false);
   let launchError = $state('');
   let progress = $state(0);
@@ -296,6 +297,18 @@
     await invoke('close_main_window');
   }
 
+  async function refreshVersionState() {
+    if (!hasTauriRuntime()) {
+      return;
+    }
+    else {
+      legacyVersion = await invoke('is_legacy_version', { tag: selectedVersion });
+    }
+    if (legacyVersion) {
+      launchAutomatically = true;
+    }
+  }
+
   function openDetails() {
     view = 'details';
     branchOpen = false;
@@ -350,6 +363,7 @@
   function selectVersion(version: string) {
     selectedVersion = version;
     versionOpen = false;
+    refreshVersionState();
   }
 
   function toggleConfig(event: MouseEvent) {
@@ -576,7 +590,7 @@
     requestAnimationFrame(tick);
 
     try {
-      await invoke('download_and_launch_version', { tag: versionToLaunch, configId: configIdToLaunch, appid, autoLaunch: autolaunch });
+      await invoke('download_and_launch_version', { tag: versionToLaunch, configId: configIdToLaunch, appid, autoLaunch: autolaunch});
 
       while (true) {
         const isRunning = await invoke<boolean>('check_for_csgo');
@@ -985,10 +999,12 @@
                     {/if}
                   </div>
                   <p><span class="label">Last Launch:</span> <span class="value">Just Now</span></p>
+                  {#if !legacyVersion}
                   <label class="checkbox-row">
                     <span class="label">Launch Automatically</span>
                     <input type="checkbox" bind:checked={launchAutomatically} />
                   </label>
+                  {/if}
                 </div>
 
                 <div class="changelog">

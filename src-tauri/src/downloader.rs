@@ -381,24 +381,3 @@ fn spawn_server_hidden(
         .map(|_| ())
         .map_err(|error| LauncherError::System(format!("failed to launch {}: {error}", exe.display())))
 }
-
-pub fn is_legacy_version(tag: &str) -> bool {
-    let clean_tag = tag.trim_start_matches('v');
-    let parts: Vec<&str> = clean_tag.split('.').collect();
-    if parts.is_empty() {
-        return false;
-    }
-    if let Ok(major) = parts[0].parse::<i32>() {
-        if major < 1 {
-            return true;
-        }
-        if major == 1 && parts.len() > 1 {
-            if let Ok(minor) = parts[1].parse::<i32>() {
-                if minor < 1 {
-                    return true;
-                }
-            }
-        }
-    }
-    false
-}
